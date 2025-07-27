@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Link Collection</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div class="left-controls">
+                    <button id="addLinkBtn" class="compact-btn" title="새 링크 추가">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button id="manageCategoriesBtn" class="compact-btn" title="카테고리 관리">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="search-group">
+                        <input type="text" id="searchInput" placeholder="링크 검색..." class="compact-search">
+                        <div class="category-dropdown">
+                            <button id="categoryDropdownBtn" class="dropdown-btn" title="카테고리 선택">
+                                <span id="currentCategoryText">전체</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div id="categoryDropdownMenu" class="dropdown-menu">
+                                <div class="dropdown-item active" data-category="all">전체</div>
+                                <div id="dropdownCategoryButtons"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="right-controls">
+                    <button id="themeToggle" class="compact-btn" title="테마 변경">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+
+
+        <div class="links-list-container" id="linksContainer">
+            <!-- 링크 목록이 여기에 동적으로 추가됩니다 -->
+        </div>
+    </div>
+
+    <!-- 링크 추가 모달 -->
+    <div id="addLinkModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>새 링크 추가</h2>
+            <form id="addLinkForm">
+                <div class="form-group">
+                    <label for="linkTitle">제목</label>
+                    <input type="text" id="linkTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="linkUrl">URL</label>
+                    <input type="url" id="linkUrl" required>
+                </div>
+                <div class="form-group">
+                    <label for="linkCategory">카테고리</label>
+                    <select id="linkCategory" required>
+                        <option value="work">업무</option>
+                        <option value="study">학습</option>
+                        <option value="entertainment">엔터테인먼트</option>
+                        <option value="tools">도구</option>
+                        <option value="social">소셜</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="linkDescription">설명 (선택사항)</label>
+                    <textarea id="linkDescription" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelBtn">취소</button>
+                    <button type="submit">추가</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 카테고리 관리 모달 -->
+    <div id="manageCategoriesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeManageCategories">&times;</span>
+            <h2>카테고리 관리</h2>
+            <form id="addCategoryForm" style="margin-bottom:16px;display:flex;gap:8px;">
+                <input type="text" id="newCategoryName" placeholder="새 카테고리명" required style="flex:1;">
+                <button type="submit">추가</button>
+            </form>
+            <ul id="categoryList" class="category-list"></ul>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 
