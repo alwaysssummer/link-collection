@@ -31,93 +31,81 @@ class LinkCollection {
     }
 
     bindEvents() {
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            this.searchTerm = e.target.value.toLowerCase();
-            this.renderLinks();
-        });
-
-        // 카테고리 드롭다운 기능
-        document.getElementById('categoryDropdownBtn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const menu = document.getElementById('categoryDropdownMenu');
-            const btn = document.getElementById('categoryDropdownBtn');
-            menu.classList.toggle('show');
-            btn.classList.toggle('open');
-        });
-
-        // 드롭다운 아이템 클릭
-        document.getElementById('categoryDropdownMenu').addEventListener('click', (e) => {
-            if (e.target.classList.contains('dropdown-item')) {
-                // 활성 상태 업데이트
-                document.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
-                e.target.classList.add('active');
-                
-                // 현재 카테고리 업데이트
-                this.currentCategory = e.target.dataset.category;
-                document.getElementById('currentCategoryText').textContent = e.target.textContent;
-                
-                // 메뉴 닫기
-                document.getElementById('categoryDropdownMenu').classList.remove('show');
-                document.getElementById('categoryDropdownBtn').classList.remove('open');
-                
-                // 링크 렌더링
+        // 검색 이벤트
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.searchTerm = e.target.value;
                 this.renderLinks();
-            }
-        });
+            });
+        }
 
-        // 외부 클릭 시 드롭다운 닫기
-        document.addEventListener('click', () => {
-            document.getElementById('categoryDropdownMenu').classList.remove('show');
-            document.getElementById('categoryDropdownBtn').classList.remove('open');
-        });
+        // 카테고리 드롭다운 이벤트
+        const categoryDropdownBtn = document.getElementById('categoryDropdownBtn');
+        if (categoryDropdownBtn) {
+            categoryDropdownBtn.addEventListener('click', () => {
+                const menu = document.getElementById('categoryDropdownMenu');
+                if (menu) {
+                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                }
+            });
+        }
 
-        // 카테고리 관리 모달 열기
-        document.getElementById('manageCategoriesBtn').addEventListener('click', () => {
-            this.openCategoryModal();
-        });
-        document.getElementById('closeManageCategories').addEventListener('click', () => {
-            this.closeCategoryModal();
-        });
+        const categoryDropdownMenu = document.getElementById('categoryDropdownMenu');
+        if (categoryDropdownMenu) {
+            categoryDropdownMenu.addEventListener('click', (e) => {
+                if (e.target.classList.contains('dropdown-item')) {
+                    const category = e.target.dataset.category;
+                    this.currentCategory = category;
+                    const currentCategoryText = document.getElementById('currentCategoryText');
+                    if (currentCategoryText) {
+                        currentCategoryText.textContent = e.target.textContent;
+                    }
+                    if (categoryDropdownMenu) {
+                        categoryDropdownMenu.style.display = 'none';
+                    }
+                    this.renderLinks();
+                }
+            });
+        }
+
+        // 테마 토글 이벤트
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
+
+        // 카테고리 추가 폼 이벤트
+        const addCategoryForm = document.getElementById('addCategoryForm');
+        if (addCategoryForm) {
+            addCategoryForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.addCategory();
+            });
+        }
+
+        // 카테고리 관리 모달 닫기 버튼
+        const closeCategoryModal = document.getElementById('closeCategoryModal');
+        if (closeCategoryModal) {
+            closeCategoryModal.addEventListener('click', () => {
+                this.closeModal();
+            });
+        }
+
+        // 모달 외부 클릭 시 닫기
         window.addEventListener('click', (e) => {
-            if (e.target === document.getElementById('manageCategoriesModal')) {
-                this.closeCategoryModal();
-            }
-        });
-        // 카테고리 추가
-        document.getElementById('addCategoryForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.addCategory();
-        });
-
-        // 링크 추가/수정 모달 관련
-        document.getElementById('addLinkBtn').addEventListener('click', () => {
-            this.openModal();
-        });
-        document.querySelector('.close').addEventListener('click', () => {
-            this.closeModal();
-        });
-        document.getElementById('cancelBtn').addEventListener('click', () => {
-            this.closeModal();
-        });
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal') && e.target.id !== 'manageCategoriesModal') {
+            if (e.target.classList.contains('modal')) {
                 this.closeModal();
             }
         });
-        document.getElementById('addLinkForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleFormSubmit();
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'n') {
-                e.preventDefault();
-                this.openModal();
-            }
-        });
 
-        // 테마 토글 버튼
-        document.getElementById('themeToggle').addEventListener('click', () => {
-            this.toggleTheme();
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeModal();
+            }
         });
     }
 
@@ -132,16 +120,34 @@ class LinkCollection {
         this.editingCategoryId = null;
     }
     async addCategory() {
-        const name = document.getElementById('newCategoryName').value.trim();
-        if (!name) return;
-        // id는 영문+숫자 랜덤
-        const id = 'cat_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
-        this.categories.push({ id, name });
+        const name = document.getElementById('categoryName').value.trim();
+        if (!name) {
+            alert('카테고리 이름을 입력해주세요.');
+            return;
+        }
+
+        // 중복 확인
+        if (this.categories.some(cat => cat.name === name)) {
+            alert('이미 존재하는 카테고리 이름입니다.');
+            return;
+        }
+
+        const newCategory = {
+            id: this.generateId(),
+            name,
+            order: this.categories.length,
+            createdAt: this.isFirebaseConnected ? new Date() : new Date().toISOString(),
+            updatedAt: this.isFirebaseConnected ? new Date() : new Date().toISOString()
+        };
+
+        this.categories.push(newCategory);
         await this.saveCategories();
         this.renderCategoryButtons();
-        this.renderCategoryList();
         this.renderLinks();
-        document.getElementById('newCategoryName').value = '';
+        
+        // 모달 닫기
+        this.closeModal();
+        this.showNotification('새 카테고리가 추가되었습니다.');
     }
     editCategory(id) {
         this.editingCategoryId = id;
@@ -538,12 +544,46 @@ class LinkCollection {
         targetElement.innerHTML = this.escapeHtml(originalValue);
     }
 
+    // --- 카테고리별 빠른 링크 추가 ---
+    quickAddToCategory(categoryId) {
+        // 해당 카테고리로 설정하고 모달 열기
+        this.currentCategory = categoryId;
+        
+        // 카테고리 드롭다운 텍스트 업데이트
+        const categoryName = this.getCategoryName(categoryId);
+        document.getElementById('currentCategoryText').textContent = categoryName;
+        
+        // 모달 열기
+        this.openModal();
+        
+        // 카테고리 자동 선택
+        setTimeout(() => {
+            const categorySelect = document.getElementById('linkCategory');
+            if (categorySelect) {
+                categorySelect.value = categoryId;
+            }
+        }, 100);
+    }
+
     // --- 카테고리 드롭다운 동적 렌더링 ---
     renderCategoryButtons() {
-        const container = document.getElementById('dropdownCategoryButtons');
-        container.innerHTML = this.categories.map(cat =>
-            `<div class="dropdown-item" data-category="${cat.id}">${this.escapeHtml(cat.name)}</div>`
-        ).join('');
+        const container = document.getElementById('categoryDropdownMenu');
+        if (container) {
+            // 기존 카테고리 아이템들 제거 (전체 옵션 제외)
+            const existingCategoryItems = container.querySelectorAll('.dropdown-item:not([data-category="all"])');
+            existingCategoryItems.forEach(item => item.remove());
+            
+            // 새로운 카테고리들 추가
+            const categoryItems = this.categories.map(cat =>
+                `<div class="dropdown-item" data-category="${cat.id}">${this.escapeHtml(cat.name)}</div>`
+            ).join('');
+            
+            // "전체" 옵션 다음에 카테고리들 추가
+            const allOption = container.querySelector('.dropdown-item[data-category="all"]');
+            if (allOption) {
+                allOption.insertAdjacentHTML('afterend', categoryItems);
+            }
+        }
     }
 
     // --- 링크 추가/수정 모달 ---
@@ -570,9 +610,19 @@ class LinkCollection {
         document.getElementById('linkTitle').focus();
     }
 
+    // --- 카테고리 추가 모달 ---
+    openCategoryModal() {
+        this.editingCategoryId = null;
+        document.getElementById('categoryName').value = '';
+        document.getElementById('categoryModal').style.display = 'block';
+        document.getElementById('categoryName').focus();
+    }
+
     closeModal() {
-        document.getElementById('addLinkModal').style.display = 'none';
+        document.getElementById('linkModal').style.display = 'none';
+        document.getElementById('categoryModal').style.display = 'none';
         this.editingLinkId = null;
+        this.editingCategoryId = null;
     }
 
     async handleFormSubmit() {
@@ -716,44 +766,33 @@ class LinkCollection {
             return;
         }
 
-        // 카테고리별 컬럼으로 렌더링
-        if (this.currentCategory === 'all') {
-            // 전체 보기: 카테고리별로 그룹화
-            const groupedLinks = this.groupLinksByCategory(filteredLinks);
-            let html = `<div class="category-columns" id="categoryColumns">`;
+        // 항상 카테고리별 컬럼으로 렌더링 (전체 보기)
+        const groupedLinks = this.groupLinksByCategory(filteredLinks); // filteredLinks를 사용
+        let html = `<div class="category-columns" id="categoryColumns">`;
+        
+        let columnIndex = 0;
+        for (const [categoryId, links] of Object.entries(groupedLinks)) {
+            const categoryName = this.getCategoryName(categoryId);
             
-            let columnIndex = 0;
-            for (const [categoryId, links] of Object.entries(groupedLinks)) {
-                const categoryName = this.getCategoryName(categoryId);
-                html += `
-                    <div class="category-column" draggable="true" data-category-id="${categoryId}" data-column-index="${columnIndex}">
-                        <h3 class="category-header">
-                            <span class="drag-handle">⋮⋮</span>
-                            ${categoryName} (${links.length})
-                        </h3>
-                        <div class="links-list" data-category="${categoryId}">
-                            ${links.map((link, index) => this.renderLinkRow(link, index)).join('')}
-                        </div>
-                    </div>
-                `;
-                columnIndex++;
-            }
-            html += '</div>';
-            container.innerHTML = html;
-            this.initDragAndDrop();
-        } else {
-            // 특정 카테고리 보기: 한 컬럼으로 표시
-            let html = `
-                <div class="single-category">
-                    <h3 class="category-header">${this.getCategoryName(this.currentCategory)} (${filteredLinks.length})</h3>
-                    <div class="links-list" data-category="${this.currentCategory}">
-                        ${filteredLinks.map((link, index) => this.renderLinkRow(link, index)).join('')}
+            html += `
+                <div class="category-column" draggable="true" data-category-id="${categoryId}" data-column-index="${columnIndex}">
+                    <h3 class="category-header">
+                        <span class="drag-handle">⋮⋮</span>
+                        ${categoryName} (${links.length})
+                        <button class="quick-add-btn" onclick="linkCollection.quickAddToCategory('${categoryId}')" title="${categoryName}에 링크 추가">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </h3>
+                    <div class="links-list" data-category="${categoryId}">
+                        ${links.map((link, index) => this.renderLinkRow(link, index)).join('')}
                     </div>
                 </div>
             `;
-            container.innerHTML = html;
-            this.initDragAndDrop();
+            columnIndex++;
         }
+        html += '</div>';
+        container.innerHTML = html;
+        this.initDragAndDrop();
     }
 
     getCategoryName(category) {
@@ -794,10 +833,7 @@ class LinkCollection {
             <div class="link-row" draggable="true" data-id="${link.id}" data-link-index="${index}">
                 <div class="link-title-col">
                     <span class="link-drag-handle">⋮</span>
-                    <span class="link-title-text" onclick="linkCollection.startInlineEdit('${link.id}', 'title')" title="클릭하여 편집">${this.escapeHtml(link.title)}</span>
-                </div>
-                <div class="link-description-col">
-                    <span class="link-description-text" onclick="linkCollection.startInlineEdit('${link.id}', 'description')" title="클릭하여 편집">${link.description ? this.escapeHtml(link.description) : '설명 없음'}</span>
+                    <a href="${link.url}" target="_blank" class="link-title-link" title="새 탭에서 링크 열기">${this.escapeHtml(link.title)}</a>
                 </div>
                 <div class="link-actions-col">
                     <button class="action-btn edit-btn" onclick="linkCollection.editLink('${link.id}')" title="수정">✏️</button>
