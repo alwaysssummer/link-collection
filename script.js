@@ -26,7 +26,7 @@ class LinkCollection {
         this.renderLinks();
         
         if (this.links.length === 0) {
-            this.loadSampleData();
+        this.loadSampleData();
         }
     }
 
@@ -81,16 +81,41 @@ class LinkCollection {
         const addCategoryForm = document.getElementById('addCategoryForm');
         if (addCategoryForm) {
             addCategoryForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.addCategory();
-            });
+            e.preventDefault();
+            this.addCategory();
+        });
         }
 
         // 카테고리 관리 모달 닫기 버튼
         const closeCategoryModal = document.getElementById('closeCategoryModal');
         if (closeCategoryModal) {
             closeCategoryModal.addEventListener('click', () => {
+            this.closeModal();
+        });
+        }
+
+        // 링크 추가 모달 닫기 버튼 (X)
+        const closeLinkModal = document.querySelector('#addLinkModal .close');
+        if (closeLinkModal) {
+            closeLinkModal.addEventListener('click', () => {
                 this.closeModal();
+            });
+        }
+
+        // 링크 추가 모달 취소 버튼
+        const cancelLinkBtn = document.getElementById('cancelBtn');
+        if (cancelLinkBtn) {
+            cancelLinkBtn.addEventListener('click', () => {
+                this.closeModal();
+            });
+        }
+
+        // 링크 추가 폼 이벤트
+        const addLinkForm = document.getElementById('addLinkForm');
+        if (addLinkForm) {
+            addLinkForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleFormSubmit();
             });
         }
 
@@ -120,7 +145,7 @@ class LinkCollection {
         this.editingCategoryId = null;
     }
     async addCategory() {
-        const name = document.getElementById('categoryName').value.trim();
+        const name = document.getElementById('newCategoryName').value.trim();
         if (!name) {
             alert('카테고리 이름을 입력해주세요.');
             return;
@@ -149,6 +174,38 @@ class LinkCollection {
         this.closeModal();
         this.showNotification('새 카테고리가 추가되었습니다.');
     }
+
+    // 빠른 카테고리 추가 (모달 없이)
+    async quickAddCategory() {
+        const name = prompt('새 카테고리 이름을 입력하세요:');
+        if (!name || !name.trim()) {
+            return;
+        }
+
+        const trimmedName = name.trim();
+        
+        // 중복 확인
+        if (this.categories.some(cat => cat.name === trimmedName)) {
+            alert('이미 존재하는 카테고리 이름입니다.');
+            return;
+        }
+
+        const newCategory = {
+            id: this.generateId(),
+            name: trimmedName,
+            order: this.categories.length,
+            createdAt: this.isFirebaseConnected ? new Date() : new Date().toISOString(),
+            updatedAt: this.isFirebaseConnected ? new Date() : new Date().toISOString()
+        };
+
+        this.categories.push(newCategory);
+        await this.saveCategories();
+        this.renderCategoryButtons();
+        this.renderLinks();
+        
+        this.showNotification(`새 카테고리 "${trimmedName}"가 추가되었습니다.`);
+    }
+
     editCategory(id) {
         this.editingCategoryId = id;
         this.renderCategoryList();
@@ -220,7 +277,7 @@ class LinkCollection {
                 localStorage.setItem('categories', JSON.stringify(this.categories));
             }
         } else {
-            localStorage.setItem('categories', JSON.stringify(this.categories));
+        localStorage.setItem('categories', JSON.stringify(this.categories));
         }
     }
 
@@ -362,15 +419,6 @@ class LinkCollection {
             list.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                const draggingElement = document.querySelector('.link-row.dragging');
-                if (draggingElement) {
-                    const afterElement = this.getDragAfterElement(list, e.clientY);
-                    if (afterElement == null) {
-                        list.appendChild(draggingElement);
-                    } else {
-                        list.insertBefore(draggingElement, afterElement);
-                    }
-                }
             });
 
             list.addEventListener('drop', (e) => {
@@ -378,25 +426,12 @@ class LinkCollection {
                 const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
                 const targetCategory = list.dataset.category;
                 
-                this.moveLink(dragData.linkId, dragData.sourceCategory, targetCategory, list);
+                this.moveLink(dragData.linkId, dragData.sourceCategory, targetCategory);
             });
         });
     }
 
-    getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.link-row:not(.dragging)')];
-        
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
+
 
     async reorderCategories(draggedCategoryId, targetCategoryId) {
         const draggedIndex = this.categories.findIndex(cat => cat.id === draggedCategoryId);
@@ -412,31 +447,16 @@ class LinkCollection {
         }
     }
 
-    async moveLink(linkId, sourceCategory, targetCategory, targetList) {
+    async moveLink(linkId, sourceCategory, targetCategory) {
         const link = this.links.find(l => l.id === linkId);
         if (!link) return;
 
         // 카테고리 변경
         if (sourceCategory !== targetCategory) {
             link.category = targetCategory;
+            await this.saveLinks();
+            this.renderLinks();
         }
-
-        // 순서 변경
-        const targetLinks = targetList.querySelectorAll('.link-row');
-        const newOrder = Array.from(targetLinks).map(row => row.dataset.id);
-        
-        // 해당 카테고리의 링크들을 새로운 순서로 정렬
-        const categoryLinks = this.links.filter(l => l.category === targetCategory);
-        const otherLinks = this.links.filter(l => l.category !== targetCategory);
-        
-        const reorderedCategoryLinks = newOrder.map(id => 
-            categoryLinks.find(l => l.id === id) || this.links.find(l => l.id === id)
-        ).filter(Boolean);
-
-        this.links = [...otherLinks, ...reorderedCategoryLinks];
-        
-        await this.saveLinks();
-        this.renderLinks();
     }
 
     // --- 인라인 편집 기능 ---
@@ -576,7 +596,7 @@ class LinkCollection {
             // 새로운 카테고리들 추가
             const categoryItems = this.categories.map(cat =>
                 `<div class="dropdown-item" data-category="${cat.id}">${this.escapeHtml(cat.name)}</div>`
-            ).join('');
+        ).join('');
             
             // "전체" 옵션 다음에 카테고리들 추가
             const allOption = container.querySelector('.dropdown-item[data-category="all"]');
@@ -613,14 +633,14 @@ class LinkCollection {
     // --- 카테고리 추가 모달 ---
     openCategoryModal() {
         this.editingCategoryId = null;
-        document.getElementById('categoryName').value = '';
-        document.getElementById('categoryModal').style.display = 'block';
-        document.getElementById('categoryName').focus();
+        document.getElementById('newCategoryName').value = '';
+        document.getElementById('manageCategoriesModal').style.display = 'block';
+        document.getElementById('newCategoryName').focus();
     }
 
     closeModal() {
-        document.getElementById('linkModal').style.display = 'none';
-        document.getElementById('categoryModal').style.display = 'none';
+        document.getElementById('addLinkModal').style.display = 'none';
+        document.getElementById('manageCategoriesModal').style.display = 'none';
         this.editingLinkId = null;
         this.editingCategoryId = null;
     }
@@ -664,6 +684,14 @@ class LinkCollection {
         }
 
         await this.saveLinks();
+        
+        // 링크 추가 후 전체 카테고리 보기로 리셋
+        this.currentCategory = 'all';
+        const currentCategoryText = document.getElementById('currentCategoryText');
+        if (currentCategoryText) {
+            currentCategoryText.textContent = '전체';
+        }
+        
         this.renderLinks();
         this.closeModal();
         this.showNotification(this.editingLinkId ? '링크가 수정되었습니다.' : '링크가 추가되었습니다.');
@@ -717,7 +745,7 @@ class LinkCollection {
                 localStorage.setItem('links', JSON.stringify(this.links));
             }
         } else {
-            localStorage.setItem('links', JSON.stringify(this.links));
+        localStorage.setItem('links', JSON.stringify(this.links));
         }
     }
 
