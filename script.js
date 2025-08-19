@@ -8,6 +8,7 @@ class LinkCollection {
         this.editingCategoryId = null;
         this.currentTheme = localStorage.getItem('theme') || 'light';
         this.isFirebaseConnected = typeof firebase !== 'undefined';
+        this.favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
         this.init();
     }
 
@@ -281,6 +282,26 @@ class LinkCollection {
         }
     }
 
+    // --- 즐겨찾기 관리 ---
+    toggleFavorite(linkId) {
+        const index = this.favorites.indexOf(linkId);
+        if (index > -1) {
+            this.favorites.splice(index, 1);
+        } else {
+            this.favorites.push(linkId);
+        }
+        localStorage.setItem('favorites', JSON.stringify(this.favorites));
+        this.renderLinks();
+    }
+
+    isFavorite(linkId) {
+        return this.favorites.includes(linkId);
+    }
+
+    getFavoriteLinks() {
+        return this.links.filter(link => this.favorites.includes(link.id));
+    }
+
     // --- 테마 관리 ---
     applyTheme() {
         document.documentElement.setAttribute('data-theme', this.currentTheme);
@@ -366,7 +387,7 @@ class LinkCollection {
     }
 
     initCategoryDragAndDrop() {
-        const columns = document.querySelectorAll('.category-column');
+        const columns = document.querySelectorAll('.category-column:not(.favorites-column)');
         
         columns.forEach(column => {
             column.addEventListener('dragstart', (e) => {
@@ -794,11 +815,29 @@ class LinkCollection {
             return;
         }
 
-        // 항상 카테고리별 컬럼으로 렌더링 (전체 보기)
-        const groupedLinks = this.groupLinksByCategory(filteredLinks); // filteredLinks를 사용
+        // 즐겨찾기 카드를 첫 번째에 표시
+        const favoriteLinks = this.getFavoriteLinks();
         let html = `<div class="category-columns" id="categoryColumns">`;
         
-        let columnIndex = 0;
+        // 즐겨찾기 카드 (항상 첫 번째)
+        if (favoriteLinks.length > 0) {
+            html += `
+                <div class="category-column favorites-column" data-category-id="favorites" data-column-index="0">
+                    <h3 class="category-header">
+                        <i class="fas fa-star" style="color: #34495e; margin-right: 8px;"></i>
+                        즐겨찾기 (${favoriteLinks.length})
+                    </h3>
+                    <div class="links-list" data-category="favorites">
+                        ${favoriteLinks.map((link, index) => this.renderLinkRow(link, index)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 기존 카테고리별 컬럼 렌더링
+        const groupedLinks = this.groupLinksByCategory(filteredLinks);
+        let columnIndex = favoriteLinks.length > 0 ? 1 : 0;
+        
         for (const [categoryId, links] of Object.entries(groupedLinks)) {
             const categoryName = this.getCategoryName(categoryId);
             
@@ -857,6 +896,10 @@ class LinkCollection {
     }
 
     renderLinkRow(link, index) {
+        const isFav = this.isFavorite(link.id);
+        const starIcon = isFav ? 'fas fa-star' : 'far fa-star';
+        const starColor = isFav ? '#34495e' : '#bdc3c7';
+        
         return `
             <div class="link-row" draggable="true" data-id="${link.id}" data-link-index="${index}">
                 <div class="link-title-col">
@@ -864,6 +907,9 @@ class LinkCollection {
                     <a href="${link.url}" target="_blank" class="link-title-link" title="새 탭에서 링크 열기">${this.escapeHtml(link.title)}</a>
                 </div>
                 <div class="link-actions-col">
+                    <button class="action-btn favorite-btn" onclick="linkCollection.toggleFavorite('${link.id}')" title="${isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
+                        <i class="${starIcon}" style="color: ${starColor};"></i>
+                    </button>
                     <button class="action-btn edit-btn" onclick="linkCollection.editLink('${link.id}')" title="수정">✏️</button>
                     <button class="action-btn delete-btn" onclick="linkCollection.deleteLink('${link.id}')" title="삭제">🗑️</button>
                 </div>

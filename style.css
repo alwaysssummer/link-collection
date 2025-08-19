@@ -7,7 +7,6 @@
 :root {
     --primary-color: #667eea;
     --primary-hover: #5a6fd8;
-    --visited-color: #9b59b6;
     --card-bg: #ffffff;
     --bg-secondary: #f8f9fa;
     --hover-bg: #f1f3f4;
@@ -22,7 +21,6 @@
 [data-theme="dark"] {
     --primary-color: #7c8fff;
     --primary-hover: #6b7cff;
-    --visited-color: #b366ff;
     --card-bg: #2d3748;
     --bg-secondary: #4a5568;
     --hover-bg: #4a5568;
@@ -441,7 +439,7 @@ header p {
 }
 
 .link-title-link {
-    color: var(--text-primary);
+    color: var(--text-primary) !important;
     text-decoration: none;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -459,7 +457,7 @@ header p {
 }
 
 .link-title-link:visited {
-    color: var(--visited-color);
+    color: var(--text-primary);
 }
 
 .link-actions-col {
@@ -503,6 +501,28 @@ header p {
     border-color: var(--primary-color);
     color: white;
     transform: scale(1.1);
+}
+
+.favorite-btn:hover {
+    background: #2c3e50 !important;
+    border-color: #2c3e50 !important;
+    color: white !important;
+}
+
+.favorites-column {
+    border: 2px solid #34495e;
+    background: linear-gradient(135deg, rgba(52, 73, 94, 0.03), rgba(52, 73, 94, 0.08));
+    box-shadow: 0 2px 12px rgba(52, 73, 94, 0.1);
+}
+
+.favorites-column .category-header {
+    background: linear-gradient(135deg, #34495e, #2c3e50);
+    color: white;
+    border-bottom: 1px solid #2c3e50;
+}
+
+.favorites-column .category-header .drag-handle {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 /* 모달 스타일은 기존과 동일하게 유지 */
@@ -692,19 +712,19 @@ header p {
 } 
 
 .link-title-link {
-    color: var(--text-primary);
+    color: var(--text-primary) !important;
     text-decoration: none;
     cursor: pointer;
     transition: color 0.2s ease;
 }
 
 .link-title-link:hover {
-    color: #667eea;
+    color: var(--primary-color) !important;
     text-decoration: underline;
 }
 
 .link-title-link:visited {
-    color: #9b59b6;
+    color: var(--text-primary) !important;
 } 
 
 .link-drag-handle {
