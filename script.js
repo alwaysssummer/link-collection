@@ -433,6 +433,111 @@ class LinkCollection {
         this.renderLinks();
     }
 
+    // --- 인라인 편집 기능 ---
+    startInlineEdit(linkId, field) {
+        const link = this.links.find(l => l.id === linkId);
+        if (!link) return;
+
+        const row = document.querySelector(`[data-id="${linkId}"]`);
+        const targetElement = row.querySelector(`.link-${field}-text`);
+        
+        if (!targetElement) return;
+
+        const currentValue = field === 'title' ? link.title : (link.description || '');
+        
+        // 입력 필드 생성
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue;
+        input.className = `inline-edit-input ${field}-input`;
+        input.style.cssText = `
+            width: 100%;
+            padding: 2px 4px;
+            border: 1px solid #667eea;
+            border-radius: 3px;
+            font-size: inherit;
+            background: white;
+            outline: none;
+        `;
+
+        // 저장 버튼
+        const saveBtn = document.createElement('button');
+        saveBtn.innerHTML = '💾';
+        saveBtn.className = 'inline-save-btn';
+        saveBtn.style.cssText = `
+            margin-left: 4px;
+            padding: 2px 6px;
+            border: none;
+            border-radius: 3px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 10px;
+        `;
+
+        // 취소 버튼
+        const cancelBtn = document.createElement('button');
+        cancelBtn.innerHTML = '❌';
+        cancelBtn.className = 'inline-cancel-btn';
+        cancelBtn.style.cssText = `
+            margin-left: 2px;
+            padding: 2px 6px;
+            border: none;
+            border-radius: 3px;
+            background: #e74c3c;
+            color: white;
+            cursor: pointer;
+            font-size: 10px;
+        `;
+
+        // 이벤트 리스너
+        const saveEdit = async () => {
+            const newValue = input.value.trim();
+            if (newValue !== currentValue) {
+                if (field === 'title') {
+                    link.title = newValue;
+                } else {
+                    link.description = newValue;
+                }
+                link.updatedAt = this.isFirebaseConnected ? new Date() : new Date().toISOString();
+                await this.saveLinks();
+                this.renderLinks();
+            } else {
+                this.cancelInlineEdit(targetElement, currentValue);
+            }
+        };
+
+        const cancelEdit = () => {
+            this.cancelInlineEdit(targetElement, currentValue);
+        };
+
+        // 키보드 이벤트
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                saveEdit();
+            } else if (e.key === 'Escape') {
+                cancelEdit();
+            }
+        });
+
+        saveBtn.addEventListener('click', saveEdit);
+        cancelBtn.addEventListener('click', cancelEdit);
+
+        // 원본 텍스트를 입력 필드로 교체
+        targetElement.innerHTML = '';
+        targetElement.appendChild(input);
+        targetElement.appendChild(saveBtn);
+        targetElement.appendChild(cancelBtn);
+        
+        // 입력 필드에 포커스
+        input.focus();
+        input.select();
+    }
+
+    cancelInlineEdit(targetElement, originalValue) {
+        targetElement.innerHTML = this.escapeHtml(originalValue);
+    }
+
     // --- 카테고리 드롭다운 동적 렌더링 ---
     renderCategoryButtons() {
         const container = document.getElementById('dropdownCategoryButtons');
@@ -689,10 +794,10 @@ class LinkCollection {
             <div class="link-row" draggable="true" data-id="${link.id}" data-link-index="${index}">
                 <div class="link-title-col">
                     <span class="link-drag-handle">⋮</span>
-                    <a href="${link.url}" target="_blank" rel="noopener noreferrer" title="${this.escapeHtml(link.title)}">${this.escapeHtml(link.title)}</a>
+                    <span class="link-title-text" onclick="linkCollection.startInlineEdit('${link.id}', 'title')" title="클릭하여 편집">${this.escapeHtml(link.title)}</span>
                 </div>
                 <div class="link-description-col">
-                    ${link.description ? this.escapeHtml(link.description) : ''}
+                    <span class="link-description-text" onclick="linkCollection.startInlineEdit('${link.id}', 'description')" title="클릭하여 편집">${link.description ? this.escapeHtml(link.description) : '설명 없음'}</span>
                 </div>
                 <div class="link-actions-col">
                     <button class="action-btn edit-btn" onclick="linkCollection.editLink('${link.id}')" title="수정">✏️</button>
